@@ -45,7 +45,7 @@ export default function AuraChatbot() {
   useEffect(()=> {
     setMessages([{
         role: 'model',
-        content: "Hello! I'm Aura, your empathetic AI companion. Feel free to share what's on your mind. How are you doing today?"
+        content: "Hello! I'm Aura, your AI companion. Feel free to share what's on your mind. How are you doing today?"
     }]);
   }, []);
 
@@ -55,15 +55,6 @@ export default function AuraChatbot() {
 
     const currentInput = inputText;
     setInputText('');
-
-    if (currentInput.toLowerCase() === 'tapos na ba?') {
-        setShowVideo(true);
-        // The video is about 6 seconds long. We'll hide it after 7 seconds.
-        setTimeout(() => {
-            setShowVideo(false);
-        }, 7000); 
-        return;
-    }
 
     const newMessages: Message[] = [...messages, { role: 'user', content: currentInput }];
     setMessages(newMessages);

@@ -19,6 +19,14 @@ type ErrorResponse = {
   error: string;
 };
 
+// --- System Instruction for SHORT-MONOTONOUS Condition ---
+const systemInstruction = {
+  parts: [{
+    text: "You are an experimental chatbot for a psychology study. Your task is to provide a response that is **monotonous, neutral, and very short (10-15 words)**. You must *only* acknowledge the user's statement. Do not show empathy. Do not ask questions. Do not offer solutions. Your response must be a single, short sentence."
+  }]
+};
+// -----------------------------------------------------------
+
 export async function POST(request: NextRequest) {
   try {
     console.log('API route called!');
@@ -26,10 +34,9 @@ export async function POST(request: NextRequest) {
     const body: SummarizeRequest = await request.json();
     const { text } = body;
 
-    // Validate input
-    if (!text || typeof text !== 'string' || text.trim().length < 10) {
+    if (!text || typeof text !== 'string') {
       return NextResponse.json(
-        { error: 'Please provide scenario (minimum 10 characters).' },
+        { error: 'Invalid input. Please provide text.' },
         { status: 400 }
       );
     }
@@ -39,14 +46,8 @@ export async function POST(request: NextRequest) {
       throw new Error('Missing GEMINI_API_KEY environment variable.');
     }
 
-    const prompt = `You are an empathetic assistant. 
-    Your job is to respond quickly and kindly to the user’s feelings.
-    Write 3 short supportive sentences only. 
-    Do not restate the user’s message. Respond immediately and concisely with a maximum of 150 words. 
-    User's Message: \n\n${text}`;
-
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -55,16 +56,16 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
+              role: "user",
+              parts: [{ text: text }]
+            }
           ],
+          systemInstruction: systemInstruction,
           generationConfig: {
-            maxOutputTokens: 800,
-            temperature: 0.3,
+            // ***FIX #2***: Increased tokens to 100 to ensure it does not hit MAX_TOKENS.
+            // The system prompt will still keep the actual *response* short.
+            maxOutputTokens: 100,
+            temperature: 0.1,
           },
         }),
       }
@@ -88,23 +89,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-
+    // ***FIX #1***: Moved candidate declaration *before* it is accessed.
     const candidate = data.candidates?.[0];
+
+    // --- Improved check for safety/block reasons ---
+    if (!candidate) {
+        console.error('No candidate found in Gemini response:', data);
+        return NextResponse.json(
+          { error: 'No response candidate found.' },
+          { status: 500 }
+        );
+    }
+    
+    if (candidate.finishReason && candidate.finishReason !== "STOP") {
+      console.warn(`Gemini finished with reason: ${candidate.finishReason}`);
+      if (candidate.finishReason === "MAX_TOKENS") {
+          return NextResponse.json(
+            { error: 'Model output was cut off (MAX_TOKENS).' },
+            { status: 500 }
+          );
+      }
+      // Handle other reasons like SAFETY, RECITATION, etc.
+      return NextResponse.json(
+        { error: `Gemini stopped generating for an unexpected reason: ${candidate.finishReason}` },
+        { status: 500 }
+      );
+    }
+    // ----------------------------------------------------
+
     const textResponse = candidate?.content?.parts?.[0]?.text?.trim();
 
     if (!textResponse) {
-      console.error('Unexpected Gemini response format:', data);
+      console.error('Unexpected Gemini response format or empty text:', data);
       return NextResponse.json(
-        { error: 'Invalid response format from Gemini API' },
+        { error: 'Invalid or empty response from Gemini API' },
         { status: 500 }
       );
     }
 
-
     const usageMetadata = data.usageMetadata || {};
 
     return NextResponse.json({
-      response: candidate.content.parts[0].text.trim(),
+      response: textResponse,
       usage: {
         promptTokens: usageMetadata.promptTokenCount || 0,
         candidatesTokens: usageMetadata.candidatesTokenCount || 0,
@@ -113,7 +139,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (err: unknown) {
-    console.error('Respone error:', err);
+    console.error('Response error:', err);
 
     if (err instanceof Error) {
       return NextResponse.json(
