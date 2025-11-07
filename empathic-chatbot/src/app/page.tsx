@@ -8,19 +8,10 @@ export default function Home() {
           Thank you for participating in our research.
         </h1>
         <h1>
-          In a moment, you will have a brief, 2-message exchange with a conversational agent. 
-        </h1>
-        <h1>
-         You will send a message, the bot will reply, you will send a final message, and the bot will give its final reply.
-        </h1>
-        <h1>
          For this study, please imagine you are feeling overwhelmed and stressed with work (or school) lately.
         </h1>
         <h1>
          Please click the button to begin. In the chat, send a message to the agent describing this feeling.
-        </h1>
-        <h1>
-          After the agent responds, you will be directed to a short questionnaire about your experience.
         </h1>
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           

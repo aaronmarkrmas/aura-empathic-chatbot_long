@@ -22,7 +22,7 @@ type ErrorResponse = {
 // --- System Instruction for SHORT-MONOTONOUS Condition ---
 const systemInstruction = {
   parts: [{
-    text: "You are an experimental chatbot for a psychology study. Your task is to provide a response that is **monotonous, neutral, and very short (10-15 words)**. You must *only* acknowledge the user's statement. Do not show empathy. Do not ask questions. Do not offer solutions. Your response must be a single, short sentence."
+    text: "You are an experimental chatbot for a psychology study. Your task is to provide a response that is neutral, and very short (20-25 words)"
   }]
 };
 // -----------------------------------------------------------
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           generationConfig: {
             // ***FIX #2***: Increased tokens to 100 to ensure it does not hit MAX_TOKENS.
             // The system prompt will still keep the actual *response* short.
-            maxOutputTokens: 100,
+            maxOutputTokens: 500,
             temperature: 0.1,
           },
         }),
