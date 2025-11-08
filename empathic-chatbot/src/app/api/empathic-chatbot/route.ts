@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           generationConfig: {
             // ***FIX #2***: Increased tokens to 100 to ensure it does not hit MAX_TOKENS.
             // The system prompt will still keep the actual *response* short.
-            maxOutputTokens: 500,
+            maxOutputTokens: 1200,
             temperature: 0.1,
           },
         }),
